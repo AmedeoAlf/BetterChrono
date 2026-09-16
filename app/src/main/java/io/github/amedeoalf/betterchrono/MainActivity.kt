@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -91,22 +94,25 @@ fun runOnEveryFrame(fn: () -> Unit): Unit =
 fun TimeDisplay(timeMs: Long) {
     val baseStyle = MaterialTheme.typography.displayLarge
     val baseFontSize = MaterialTheme.typography.displayLarge.fontSize
-    var resizedStyle by remember { mutableStateOf(baseStyle.copy(fontSize = baseFontSize * 10)) }
+    var resizedStyle by remember { mutableStateOf(baseStyle.copy(fontSize = baseFontSize * 2)) }
     var shouldDraw by remember { mutableStateOf(false) }
     Text(
         timeMs.toMillisString(),
-        modifier = Modifier.drawWithContent {
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawWithContent {
                 if (shouldDraw) drawContent()
             },
         style = resizedStyle,
         softWrap = false,
+        textAlign = TextAlign.Center,
         onTextLayout = {
             if (it.didOverflowWidth) {
                 shouldDraw = false
                 if (resizedStyle.fontSize.isUnspecified) {
                     resizedStyle = resizedStyle.copy(fontSize = baseFontSize)
                 }
-                resizedStyle = resizedStyle.copy(fontSize = baseStyle.fontSize * 0.95)
+                resizedStyle = resizedStyle.copy(fontSize = resizedStyle.fontSize * 0.9)
             } else {
                 shouldDraw = true
             }
@@ -167,9 +173,11 @@ fun ButtonBar(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
         fun ChronoBtn(
             label: String,
             smallText: String,
-            newViewModel: () -> ChronoViewModel
+            modifier: Modifier = Modifier,
+            buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
+            newViewModel: () -> ChronoViewModel,
         ) =
-            Button({ updateVm(newViewModel()) }) {
+            Button({ updateVm(newViewModel()) }, modifier = modifier, colors = buttonColors) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy((-7).dp)
@@ -180,7 +188,7 @@ fun ButtonBar(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
                     })
                 }
             }
-        ChronoBtn("Reset", "Azzera tutto") { vm.copy(events = emptyList()) }
+        ChronoBtn("Reset", "Azzera tutto", buttonColors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)) { vm.copy(events = emptyList()) }
         ChronoBtn("Ferma", "vol +") { vm.withStopEvent() }
         ChronoBtn("Avvia/Giro", "vol -") { vm.withStartEvent() }
     }
