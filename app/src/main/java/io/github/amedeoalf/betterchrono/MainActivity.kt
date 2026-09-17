@@ -227,7 +227,7 @@ fun EditingWidget(events: MutableList<ChronoEvent>) {
 fun EditingWidgetPreview() {
     val start = Instant.ofEpochMilli(1789549106713)
 
-    var events = remember {
+    val events = remember {
         mutableStateListOf(
             StartChronoEvent(start),
             StoppedChronoEvent(start.plusSeconds(1)),
