@@ -174,8 +174,6 @@ fun EditingWidget(events: List<ChronoEvent>, updateEvents: (List<ChronoEvent>) -
     }
 }
 
-fun <T> List<T>.removeAt(idx: Int) = this.filterIndexed { index, _ -> index != idx }
-
 @Composable
 fun LapDisplay(laps: List<Long>) {
     LazyColumn(Modifier.fillMaxWidth()) {
