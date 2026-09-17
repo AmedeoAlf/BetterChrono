@@ -67,12 +67,14 @@ class MainActivity : ComponentActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?) =
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {
-                viewModel.value = viewModel.value.withStopEvent()
+                if (event?.repeatCount == 0)
+                    viewModel.value = viewModel.value.withStopEvent()
                 true
             }
 
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                viewModel.value = viewModel.value.withStartEvent()
+                if (event?.repeatCount == 0)
+                    viewModel.value = viewModel.value.withStartEvent()
                 true
             }
 
