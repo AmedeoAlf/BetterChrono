@@ -16,7 +16,7 @@ data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant)
         get() {
             var time = 0L
             var lastStart: Instant? = null
-            for (e in events)
+            for (e in events.filter { !it.disabled })
                 when (e) {
                     is StartChronoEvent -> lastStart = lastStart ?: e.instant
                     is StoppedChronoEvent -> if (lastStart != null) {
@@ -38,7 +38,7 @@ data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant)
             var lapStart: Instant? = null
             var paused = true
             var pausedTime = 0L
-            for (e in events) {
+            for (e in events.filter { !it.disabled }) {
                 val elapsed = if (lastTime != null) e.instant.millisSince(lastTime) else 0L
                 when (e) {
                     is StartChronoEvent -> {
@@ -65,6 +65,12 @@ data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant)
         }
 }
 
-abstract class ChronoEvent(val instant: Instant) : Serializable
-class StartChronoEvent(instant: Instant) : ChronoEvent(instant)
-class StoppedChronoEvent(instant: Instant) : ChronoEvent(instant)
+abstract class ChronoEvent(val instant: Instant, val disabled: Boolean = false) : Serializable {
+    abstract fun withDisabled(value: Boolean): ChronoEvent
+}
+class StartChronoEvent(instant: Instant, disabled: Boolean = false) : ChronoEvent(instant, disabled) {
+    override fun withDisabled(value: Boolean): StartChronoEvent = StartChronoEvent(instant, value)
+}
+class StoppedChronoEvent(instant: Instant, disabled: Boolean = false) : ChronoEvent(instant, disabled) {
+    override fun withDisabled(value: Boolean): StoppedChronoEvent = StoppedChronoEvent(instant, value)
+}
