@@ -1,12 +1,25 @@
 package io.github.amedeoalf.betterchrono
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
 import java.io.Serializable
 import java.time.Instant
+import androidx.compose.runtime.State
 
-data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant) : Serializable {
-    fun withStartEvent() = copy(events = events + StartChronoEvent(currTime))
+class ChronoViewModel : Serializable, ViewModel() {
+    val events = mutableStateListOf<ChronoEvent>()
+    private val _currTime = mutableStateOf(Instant.now())
 
-    fun withStopEvent() = copy(events = events + StoppedChronoEvent(currTime))
+    val currTime: State<Instant>
+        get() = _currTime
+
+    fun updateCurrTime() {
+        _currTime.value = Instant.now()
+    }
+
+    fun addStartEvent() = events.add(StartChronoEvent(currTime.value))
+    fun addStopEvent() = events.add(StoppedChronoEvent(currTime.value))
 
     val displayMs: Long
         get() {
@@ -22,7 +35,7 @@ data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant)
                 }
 
             if (lastStart != null)
-                time += currTime.millisSince(lastStart)
+                time += currTime.value.millisSince(lastStart)
             return time
         }
 
@@ -64,9 +77,14 @@ data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant)
 abstract class ChronoEvent(val instant: Instant, val disabled: Boolean = false) : Serializable {
     abstract fun withDisabled(value: Boolean): ChronoEvent
 }
-class StartChronoEvent(instant: Instant, disabled: Boolean = false) : ChronoEvent(instant, disabled) {
+
+class StartChronoEvent(instant: Instant, disabled: Boolean = false) :
+    ChronoEvent(instant, disabled) {
     override fun withDisabled(value: Boolean): StartChronoEvent = StartChronoEvent(instant, value)
 }
-class StoppedChronoEvent(instant: Instant, disabled: Boolean = false) : ChronoEvent(instant, disabled) {
-    override fun withDisabled(value: Boolean): StoppedChronoEvent = StoppedChronoEvent(instant, value)
+
+class StoppedChronoEvent(instant: Instant, disabled: Boolean = false) :
+    ChronoEvent(instant, disabled) {
+    override fun withDisabled(value: Boolean): StoppedChronoEvent =
+        StoppedChronoEvent(instant, value)
 }

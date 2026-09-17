@@ -12,35 +12,43 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
+import androidx.compose.ui.util.fastMap
 import io.github.amedeoalf.betterchrono.ui.theme.BetterChronoTheme
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class MainActivity : ComponentActivity() {
-    val viewModel = mutableStateOf(ChronoViewModel(emptyList(), Instant.now()))
+    var viewModel = ChronoViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,16 +59,16 @@ class MainActivity : ComponentActivity() {
                 it.getSerializable("viewModel") as ChronoViewModel?
             }
         }?.let {
-            viewModel.value = it
+            viewModel = it
         }
         enableEdgeToEdge()
         setContent {
             BetterChronoTheme {
-                Screen(viewModel.value) { viewModel.value = it }
+                Screen(viewModel)
             }
         }
         runOnEveryFrame {
-            viewModel.value = viewModel.value.copy(currTime = Instant.now())
+            viewModel.updateCurrTime()
         }
     }
 
@@ -68,13 +76,13 @@ class MainActivity : ComponentActivity() {
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {
                 if (event?.repeatCount == 0)
-                    viewModel.value = viewModel.value.withStopEvent()
+                    viewModel.addStopEvent()
                 true
             }
 
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 if (event?.repeatCount == 0)
-                    viewModel.value = viewModel.value.withStartEvent()
+                    viewModel.addStartEvent()
                 true
             }
 
@@ -83,7 +91,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putSerializable("viewModel", viewModel.value)
+        outState.putSerializable("viewModel", viewModel)
     }
 }
 
@@ -124,19 +132,23 @@ fun TimeDisplay(timeMs: Long) {
 }
 
 @Composable
-fun Screen(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
+fun Screen(vm: ChronoViewModel) {
     var editingMode by remember { mutableStateOf(false) }
+    val events = remember { vm.events }
     Surface(
         Modifier
             .fillMaxSize()
     ) {
-        Column(Modifier.safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-            ButtonBar(vm, updateVm)
+        Column(
+            Modifier.safeDrawingPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ButtonBar(vm)
             TimeDisplay(vm.displayMs)
-//            Text(vm.events.joinToString { (if (it is StoppedChronoEvent) "STOP:" else "") + it.instant.millisSince(vm.events[0].instant).toMillisString() })
             Button({ editingMode = !editingMode }) { Text(if (editingMode) "Fine" else "Modifica") }
             if (editingMode) {
-                EditingWidget(vm.events) { updateVm(vm.copy(events = it)) }
+                EditingWidget(events)
             } else {
                 LapDisplay(vm.lapsMs)
             }
@@ -152,31 +164,88 @@ fun Long.toMillisString() = "%02d:%02d.%03d".format(
 )
 
 @Composable
-fun EditingWidget(events: List<ChronoEvent>, updateEvents: (List<ChronoEvent>) -> Unit) {
-    LazyColumn {
-        itemsIndexed(events) { idx, event ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    (if (event is StoppedChronoEvent) "STOP: " else "START: ") +
-                            event.instant.millisSince(events.first().instant).toMillisString(),
-                    Modifier.weight(1f)
-                )
-                Checkbox(
-                    !event.disabled,
-                    {
-                        updateEvents(events.toMutableList().also {
-                            it[idx] = event.withDisabled(!event.disabled)
-                        })
-                    },
-                )
+fun EditingWidget(events: MutableList<ChronoEvent>) {
+    println("got ${events.size} events")
+    var toMeasure by remember {
+        println("and i'm reloading things")
+        mutableStateOf(events.fastMap { false })
+    }
+    val selectedEventsIdxs =
+        toMeasure.flatMapIndexed { idx, it -> if (it) listOf(idx) else emptyList() }
+    val selectedTimestamps = selectedEventsIdxs.map { events[it].instant }
+
+    Column {
+        Text(
+            if (selectedTimestamps.size == 2)
+                selectedTimestamps[1].millisSince(selectedTimestamps[0]).toMillisString()
+            else "Seleziona due tempi per calcolare la differenza",
+            style = if (selectedTimestamps.size == 2)
+                MaterialTheme.typography.titleLarge
+            else MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row {
+            val baseModifier = Modifier.padding(10.dp)
+            Text("Misura", modifier = baseModifier)
+            Text("Tempo", modifier = baseModifier.weight(1f), textAlign = TextAlign.Center)
+            Text("Attiva", modifier = baseModifier)
+        }
+        LazyColumn {
+            itemsIndexed(events) { idx, event ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        toMeasure[idx],
+                        {
+                            toMeasure = toMeasure.toMutableList().also {
+                                // always keep two checkboxes active at most, remove the oldest checkbox selected
+                                if (!it[idx] && selectedEventsIdxs.size == 2)
+                                    it[selectedEventsIdxs[0]] = false
+                                it[idx] = !it[idx]
+                            }
+                        }
+                    )
+                    Text(
+                        (if (event is StoppedChronoEvent) "STOP: " else "START: ") +
+                                event.instant.millisSince(events.first().instant).toMillisString(),
+                        Modifier.weight(1f)
+                    )
+                    Checkbox(
+                        !event.disabled,
+                        {
+                            events[idx] = event.withDisabled(!event.disabled)
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
+@Preview(showBackground = true, device = Devices.PIXEL_3_XL)
+fun EditingWidgetPreview() {
+    val start = Instant.ofEpochMilli(1789549106713)
+
+    var events = remember {
+        mutableStateListOf(
+            StartChronoEvent(start),
+            StoppedChronoEvent(start.plusSeconds(1)),
+            StartChronoEvent(start.plusMillis(2023)),
+        )
+    }
+
+    EditingWidget(events)
+}
+
+@Composable
 fun LapDisplay(laps: List<Long>) {
-    LazyColumn(Modifier.fillMaxWidth()) {
+    LazyVerticalGrid(
+        GridCells.Adaptive(110.dp),
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         itemsIndexed(laps) { idx, it ->
             LapEntry(idx, it)
         }
@@ -185,31 +254,42 @@ fun LapDisplay(laps: List<Long>) {
 
 @Composable
 fun LapEntry(idx: Int, timeMs: Long) {
-    Text(
-        "${idx + 1}. " +
+    Card {
+        Column(Modifier.padding(5.dp)) {
+            Text(
+                "Lap ${idx + 1}",
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight(800)),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
                 timeMs.toMillisString(),
-        style = MaterialTheme.typography.bodyLarge
-    )
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+    }
 }
 
 @Preview(device = Devices.PIXEL_3_XL, showSystemUi = true)
 @Composable
 fun ScreenPreview() {
-    val start = Instant.ofEpochMilli(1789549106713)
+    val now = Instant.now()
 
-    val vm = ChronoViewModel(
+    val vm = ChronoViewModel()
+    vm.events.addAll(
         listOf(
-            StartChronoEvent(start),
-            StartChronoEvent(start.plusSeconds(1)),
-            StartChronoEvent(start.plusMillis(2023)),
-        ),
-        start.plusMillis(3023),
+            StartChronoEvent(now.minusSeconds(4)),
+            StartChronoEvent(now.minusMillis(3007)),
+            StartChronoEvent(now.minusSeconds(2)),
+            StartChronoEvent(now.minusMillis(1033)),
+        )
     )
-    Screen(vm) {}
+    Screen(vm)
 }
 
 @Composable
-fun ButtonBar(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
+fun ButtonBar(vm: ChronoViewModel) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         @Composable
         fun ChronoBtn(
@@ -217,9 +297,9 @@ fun ButtonBar(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
             smallText: String,
             modifier: Modifier = Modifier,
             buttonColors: ButtonColors = ButtonDefaults.buttonColors(),
-            newViewModel: () -> ChronoViewModel,
+            onClick: () -> Unit,
         ) =
-            Button({ updateVm(newViewModel()) }, modifier = modifier, colors = buttonColors) {
+            Button(onClick, modifier = modifier, colors = buttonColors) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy((-7).dp)
@@ -234,9 +314,9 @@ fun ButtonBar(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
             "Reset",
             "Azzera tutto",
             buttonColors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
-        ) { vm.copy(events = emptyList()) }
-        ChronoBtn("Ferma", "vol +") { vm.withStopEvent() }
-        ChronoBtn("Avvia/Giro", "vol -") { vm.withStartEvent() }
+        ) { vm.events.clear() }
+        ChronoBtn("Ferma", "vol +") { vm.addStopEvent() }
+        ChronoBtn("Avvia/Giro", "vol -") { vm.addStartEvent() }
     }
 
 }
