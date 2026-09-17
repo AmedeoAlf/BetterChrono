@@ -6,11 +6,7 @@ import java.time.Instant
 data class ChronoViewModel(val events: List<ChronoEvent>, val currTime: Instant) : Serializable {
     fun withStartEvent() = copy(events = events + StartChronoEvent(currTime))
 
-    // if already stopped, don't add a stopped event
-    fun withStopEvent() = if (events.lastOrNull() is StoppedChronoEvent) this
-    else copy(
-        events = events + StoppedChronoEvent(currTime)
-    )
+    fun withStopEvent() = copy(events = events + StoppedChronoEvent(currTime))
 
     val displayMs: Long
         get() {
