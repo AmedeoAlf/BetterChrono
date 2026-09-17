@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -122,22 +123,20 @@ fun TimeDisplay(timeMs: Long) {
 
 @Composable
 fun Screen(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
+    var editingMode by remember { mutableStateOf(false) }
     Surface(
         Modifier
             .fillMaxSize()
     ) {
-        Column(Modifier.safeDrawingPadding()) {
+        Column(Modifier.safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
             ButtonBar(vm, updateVm)
             TimeDisplay(vm.displayMs)
 //            Text(vm.events.joinToString { (if (it is StoppedChronoEvent) "STOP:" else "") + it.instant.millisSince(vm.events[0].instant).toMillisString() })
-            LazyColumn(Modifier.fillMaxWidth()) {
-                itemsIndexed(vm.lapsMs) { idx, it ->
-                    Text(
-                        "${idx + 1}. " +
-                                it.toMillisString(),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+            Button({ editingMode = !editingMode }) { Text(if (editingMode) "Fine" else "Modifica") }
+            if (editingMode) {
+                EditingWidget(vm.events) { updateVm(vm.copy(events = it)) }
+            } else {
+                LapDisplay(vm.lapsMs)
             }
         }
     }
@@ -149,6 +148,49 @@ fun Long.toMillisString() = "%02d:%02d.%03d".format(
     this / 1000 % 60,
     this % 1000,
 )
+
+@Composable
+fun EditingWidget(events: List<ChronoEvent>, updateEvents: (List<ChronoEvent>) -> Unit) {
+    LazyColumn {
+        itemsIndexed(events) { idx, event ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    (if (event is StoppedChronoEvent) "STOP: " else "START: ") +
+                            event.instant.millisSince(events.first().instant).toMillisString(),
+                    Modifier.weight(1f)
+                )
+                Checkbox(
+                    !event.disabled,
+                    {
+                        updateEvents(events.toMutableList().also {
+                            it[idx] = event.withDisabled(!event.disabled)
+                        })
+                    },
+                )
+            }
+        }
+    }
+}
+
+fun <T> List<T>.removeAt(idx: Int) = this.filterIndexed { index, _ -> index != idx }
+
+@Composable
+fun LapDisplay(laps: List<Long>) {
+    LazyColumn(Modifier.fillMaxWidth()) {
+        itemsIndexed(laps) { idx, it ->
+            LapEntry(idx, it)
+        }
+    }
+}
+
+@Composable
+fun LapEntry(idx: Int, timeMs: Long) {
+    Text(
+        "${idx + 1}. " +
+                timeMs.toMillisString(),
+        style = MaterialTheme.typography.bodyLarge
+    )
+}
 
 @Preview(device = Devices.PIXEL_3_XL, showSystemUi = true)
 @Composable
@@ -188,7 +230,11 @@ fun ButtonBar(vm: ChronoViewModel, updateVm: (ChronoViewModel) -> Unit) {
                     })
                 }
             }
-        ChronoBtn("Reset", "Azzera tutto", buttonColors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)) { vm.copy(events = emptyList()) }
+        ChronoBtn(
+            "Reset",
+            "Azzera tutto",
+            buttonColors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error)
+        ) { vm.copy(events = emptyList()) }
         ChronoBtn("Ferma", "vol +") { vm.withStopEvent() }
         ChronoBtn("Avvia/Giro", "vol -") { vm.withStartEvent() }
     }
