@@ -1,12 +1,12 @@
 package io.github.amedeoalf.betterchrono
 
-import android.os.Build
 import android.os.Bundle
 import android.view.Choreographer
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -42,33 +43,24 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
-import androidx.compose.ui.util.fastMap
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.amedeoalf.betterchrono.ui.theme.BetterChronoTheme
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class MainActivity : ComponentActivity() {
-    var viewModel = ChronoViewModel()
+    private val vm by viewModels<ChronoViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        savedInstanceState?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                it.getSerializable("viewModel", ChronoViewModel::class.java)
-            } else {
-                it.getSerializable("viewModel") as ChronoViewModel?
-            }
-        }?.let {
-            viewModel = it
-        }
         enableEdgeToEdge()
         setContent {
             BetterChronoTheme {
-                Screen(viewModel)
+                Screen(vm)
             }
         }
         runOnEveryFrame {
-            viewModel.updateCurrTime()
+            vm.updateCurrTime()
         }
     }
 
@@ -76,23 +68,18 @@ class MainActivity : ComponentActivity() {
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {
                 if (event?.repeatCount == 0)
-                    viewModel.addStopEvent()
+                    vm.addStopEvent()
                 true
             }
 
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 if (event?.repeatCount == 0)
-                    viewModel.addStartEvent()
+                    vm.addStartEvent()
                 true
             }
 
             else -> super.onKeyDown(keyCode, event)
         }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putSerializable("viewModel", viewModel)
-    }
 }
 
 fun runOnEveryFrame(fn: () -> Unit): Unit =
@@ -132,7 +119,7 @@ fun TimeDisplay(timeMs: Long) {
 }
 
 @Composable
-fun Screen(vm: ChronoViewModel) {
+fun Screen(vm: ChronoViewModel = viewModel()) {
     var editingMode by remember { mutableStateOf(false) }
     val events = remember { vm.events }
     Surface(
@@ -164,11 +151,9 @@ fun Long.toMillisString() = "%02d:%02d.%03d".format(
 )
 
 @Composable
-fun EditingWidget(events: MutableList<ChronoEvent>) {
-    println("got ${events.size} events")
-    var toMeasure by remember {
-        println("and i'm reloading things")
-        mutableStateOf(events.fastMap { false })
+fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
+    val toMeasure = remember {
+        mutableStateListOf(*Array(events.size) { false })
     }
     val selectedEventsIdxs =
         toMeasure.flatMapIndexed { idx, it -> if (it) listOf(idx) else emptyList() }
@@ -197,12 +182,10 @@ fun EditingWidget(events: MutableList<ChronoEvent>) {
                     Checkbox(
                         toMeasure[idx],
                         {
-                            toMeasure = toMeasure.toMutableList().also {
-                                // always keep two checkboxes active at most, remove the oldest checkbox selected
-                                if (!it[idx] && selectedEventsIdxs.size == 2)
-                                    it[selectedEventsIdxs[0]] = false
-                                it[idx] = !it[idx]
-                            }
+                            // always keep two checkboxes active at most, remove the oldest checkbox selected
+                            if (!toMeasure[idx] && selectedEventsIdxs.size == 2)
+                                toMeasure[selectedEventsIdxs[0]] = false
+                            toMeasure[idx] = !toMeasure[idx]
                         }
                     )
                     Text(
@@ -276,7 +259,7 @@ fun LapEntry(idx: Int, timeMs: Long) {
 fun ScreenPreview() {
     val now = Instant.now()
 
-    val vm = ChronoViewModel()
+    val vm: ChronoViewModel = viewModel()
     vm.events.addAll(
         listOf(
             StartChronoEvent(now.minusSeconds(4)),
