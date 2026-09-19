@@ -152,7 +152,7 @@ fun Long.toMillisString() = "%02d:%02d.%03d".format(
 
 @Composable
 fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
-    val toMeasure = remember {
+    val toMeasure = remember(events.size) {
         mutableStateListOf(*Array(events.size) { false })
     }
     val selectedEventsIdxs =
