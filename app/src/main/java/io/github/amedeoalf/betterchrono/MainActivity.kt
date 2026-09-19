@@ -1,5 +1,6 @@
 package io.github.amedeoalf.betterchrono
 
+import androidx.compose.material.icons.Icons
 import android.os.Bundle
 import android.view.Choreographer
 import android.view.KeyEvent
@@ -13,9 +14,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.safeGesturesPadding
+import androidx.compose.material.icons.rounded.Done
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -116,17 +124,30 @@ fun Screen(vm: ChronoViewModel = viewModel()) {
             .fillMaxSize()
     ) {
         Column(
-            Modifier.safeContentPadding(),
+            Modifier.safeDrawingPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             ButtonBar(vm)
             TimeDisplay(vm.displayMs)
-            Button({ editingMode = !editingMode }) { Text(if (editingMode) "Fine" else "Modifica") }
-            if (editingMode) {
-                EditingWidget(events)
-            } else {
-                LapDisplay(vm.lapsMs)
+            Column(
+                Modifier.safeContentPadding(),
+                horizontalAlignment = Alignment.End
+            ) {
+                IconButton({
+                    editingMode = !editingMode
+                }) {
+                    Icon(
+                        if (editingMode) rememberVectorPainter(image = Icons.Rounded.Done)
+                        else rememberVectorPainter(image = Icons.Rounded.Edit),
+                        contentDescription = "Edit mode",
+                    )
+                }
+                if (editingMode) {
+                    EditingWidget(events)
+                } else {
+                    LapDisplay(vm.lapsMs)
+                }
             }
         }
     }
@@ -158,7 +179,12 @@ fun ScreenPreview() {
 
 @Composable
 fun ButtonBar(vm: ChronoViewModel) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .safeGesturesPadding(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
         @Composable
         fun ChronoBtn(
             label: String,
