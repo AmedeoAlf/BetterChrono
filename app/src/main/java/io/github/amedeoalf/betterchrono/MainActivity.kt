@@ -3,6 +3,7 @@ package io.github.amedeoalf.betterchrono
 import android.os.Bundle
 import android.view.Choreographer
 import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -45,17 +46,16 @@ import java.time.temporal.ChronoUnit
 
 class MainActivity : ComponentActivity() {
     private val vm by viewModels<ChronoViewModel>()
+    private var pauseUpdates: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             BetterChronoTheme {
                 Screen(vm)
             }
-        }
-        runOnEveryFrame {
-            vm.updateCurrTime()
         }
     }
 
@@ -75,13 +75,35 @@ class MainActivity : ComponentActivity() {
 
             else -> super.onKeyDown(keyCode, event)
         }
+
+    override fun onResume() {
+        super.onResume()
+        pauseUpdates = runOnEveryFrame {
+            vm.updateCurrTime()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        pauseUpdates?.invoke()
+        pauseUpdates = null
+    }
 }
 
-fun runOnEveryFrame(fn: () -> Unit): Unit =
-    Choreographer.getInstance().postFrameCallback {
+data class Reference<T>(var curr: T)
+
+fun runOnEveryFrame(
+    cb: Reference<Choreographer.FrameCallback?> = Reference(null),
+    fn: () -> Unit,
+): () -> Unit {
+    if (cb.curr == null) cb.curr = Choreographer.FrameCallback {
         fn()
-        runOnEveryFrame(fn)
+        runOnEveryFrame(cb, fn)
     }
+    val choreographer = Choreographer.getInstance()
+    choreographer.postFrameCallback(cb.curr)
+    return { choreographer.removeFrameCallback(cb.curr) }
+}
 
 @Composable
 fun TimeDisplay(timeMs: Long) {
