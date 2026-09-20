@@ -1,6 +1,5 @@
 package io.github.amedeoalf.betterchrono
 
-import androidx.compose.material.icons.Icons
 import android.os.Bundle
 import android.view.Choreographer
 import android.view.KeyEvent
@@ -11,18 +10,18 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.safeGesturesPadding
-import androidx.compose.material.icons.rounded.Done
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -117,7 +115,6 @@ fun TimeDisplay(timeMs: Long) {
 
 @Composable
 fun Screen(vm: ChronoViewModel = viewModel()) {
-    var editingMode by remember { mutableStateOf(false) }
     val events = remember { vm.events }
     Surface(
         Modifier
@@ -126,28 +123,19 @@ fun Screen(vm: ChronoViewModel = viewModel()) {
         Column(
             Modifier.safeDrawingPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             ButtonBar(vm)
             TimeDisplay(vm.displayMs)
             Column(
-                Modifier.safeContentPadding(),
-                horizontalAlignment = Alignment.End
+                Modifier
+                    .padding(
+                        WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)
+                            .asPaddingValues()
+                    ),
             ) {
-                IconButton({
-                    editingMode = !editingMode
-                }) {
-                    Icon(
-                        if (editingMode) rememberVectorPainter(image = Icons.Rounded.Done)
-                        else rememberVectorPainter(image = Icons.Rounded.Edit),
-                        contentDescription = "Edit mode",
-                    )
-                }
-                if (editingMode) {
-                    EditingWidget(events)
-                } else {
-                    LapDisplay(vm.lapsMs)
-                }
+                EditingWidget(events)
+                LapDisplay(vm.lapsMs)
             }
         }
     }
@@ -182,7 +170,7 @@ fun ButtonBar(vm: ChronoViewModel) {
     Row(
         Modifier
             .fillMaxWidth()
-            .safeGesturesPadding(),
+            .padding(top = 5.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         @Composable
