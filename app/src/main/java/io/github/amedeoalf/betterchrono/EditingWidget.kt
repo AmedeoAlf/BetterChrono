@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Done
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,7 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,8 +58,8 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
                     editingMode = !editingMode
                 }) {
                     Icon(
-                        if (editingMode) rememberVectorPainter(image = Icons.Rounded.Done)
-                        else rememberVectorPainter(image = Icons.Rounded.Edit),
+                        painter = if (editingMode) painterResource(R.drawable.outline_check_24)
+                        else painterResource(R.drawable.outline_edit_24),
                         contentDescription = "Edit mode",
                     )
                 }
