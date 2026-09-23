@@ -32,52 +32,49 @@ fun SaveDialog(
     save: (filename: CharSequence) -> Unit = {}
 ) {
     var shown by shown
-    if (shown) {
-        Dialog({ shown = false }) {
-            Card(
-                colors = CardDefaults.cardColors()
-                    .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                elevation = CardDefaults.elevatedCardElevation()
+    if (shown) Dialog({ shown = false }) {
+        Card(
+            colors = CardDefaults.cardColors()
+                .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.elevatedCardElevation()
+        ) {
+            Column(
+                Modifier.padding(15.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Column(
-                    Modifier.padding(15.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Text(
+                    "Salva",
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Text(
+                    "Recupera questi tempi in un secondo momento",
+                    textAlign = TextAlign.Center
+                )
+                val tf = rememberTextFieldState()
+                TextField(
+                    tf,
+                    label = { Text("Nome salvataggio") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        "Salva",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    Text(
-                        "Recupera questi tempi in un secondo momento",
-                        textAlign = TextAlign.Center
-                    )
-                    val tf = rememberTextFieldState()
-                    TextField(
-                        tf,
-                        label = { Text("Nome salvataggio") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Button(
-                            { shown = false },
-                            colors = ButtonDefaults.textButtonColors()
-                        ) { Text("Annulla") }
-                        Button(
-                            {
-                                save(tf.text)
-                                shown = false
-                            },
-                            enabled = tf.text.isNotEmpty(),
-                            colors = ButtonDefaults.textButtonColors()
-                        ) { Text("Salva") }
-                    }
+                    Button(
+                        { shown = false },
+                        colors = ButtonDefaults.textButtonColors()
+                    ) { Text("Annulla") }
+                    Button(
+                        {
+                            save(tf.text)
+                            shown = false
+                        },
+                        enabled = tf.text.isNotEmpty(),
+                        colors = ButtonDefaults.textButtonColors()
+                    ) { Text("Salva") }
                 }
             }
         }
     }
-
 }
