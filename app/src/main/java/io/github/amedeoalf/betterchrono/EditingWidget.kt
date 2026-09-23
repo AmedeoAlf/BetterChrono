@@ -1,6 +1,7 @@
 package io.github.amedeoalf.betterchrono
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,17 +44,17 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>, export: () -> Unit, im
             horizontalArrangement = Arrangement.End,
             modifier = Modifier.fillMaxWidth()
         ) {
+            IconButton({ import() }) {
+                Icon(
+                    painter = painterResource(R.drawable.outline_download_24),
+                    contentDescription = "Import"
+                )
+            }
             if (editingMode) {
                 IconButton({ export() }) {
                     Icon(
                         painter = painterResource(R.drawable.outline_upload_24),
                         contentDescription = "Export"
-                    )
-                }
-                IconButton({ import() }) {
-                    Icon(
-                        painter = painterResource(R.drawable.outline_download_24),
-                        contentDescription = "Import"
                     )
                 }
                 Text(
@@ -66,6 +67,8 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>, export: () -> Unit, im
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
+            } else {
+                Box(Modifier.weight(1f))
             }
             if (events.isNotEmpty())
                 IconButton({
