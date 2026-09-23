@@ -120,6 +120,10 @@ class ChronoViewModel : Serializable, ViewModel() {
     fun export(to: Writer) {
         try {
             val startTime = events.first().instant
+            val events =
+                if (events.last() is StoppedChronoEvent) events
+                else events + StoppedChronoEvent(currTime.value)
+
             for (e in events) {
                 val elapsed = e.instant.millisSince(startTime)
                 to.write(MsToString.convert(elapsed, false))
@@ -133,17 +137,24 @@ class ChronoViewModel : Serializable, ViewModel() {
     }
 
     fun import(from: Reader) {
+        data class RelativeTimeEvent(val relMs: Long, val start: Boolean, val disabled: Boolean)
+
         val imported = from.readLines().map { it.split(" ") }.map {
-            val instant = Instant.ofEpochMilli(0).plusMillis(MsToString.parse(it[0]))
-            val disabled = it.getOrNull(2) == "OFF"
-            when (it[1]) {
-                "START" -> StartChronoEvent(instant, disabled)
-                "STOP" -> StoppedChronoEvent(instant, disabled)
-                else -> throw Exception("'${it[1]}' in savefile must be START or STOP, could not parse")
-            }
+            RelativeTimeEvent(
+                MsToString.parse(it[0]), when (it[1]) {
+                    "START" -> true
+                    "STOP" -> false
+                    else -> throw Exception("'${it[1]}' is neither a START or STOP")
+                }, it.getOrNull(2) == "OFF"
+            )
         }
+        if (imported.isEmpty()) return
+        val start = Instant.now().minusMillis(imported.last().relMs)
         this.events.clear()
-        this.events.addAll(imported)
+        this.events.addAll(imported.map {
+            if (it.start) StartChronoEvent(start.plusMillis(it.relMs), it.disabled)
+            else StoppedChronoEvent(start.plusMillis(it.relMs), it.disabled)
+        })
     }
 }
 

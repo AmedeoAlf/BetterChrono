@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.amedeoalf.betterchrono.ui.theme.BetterChronoTheme
+import java.io.File
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -52,9 +53,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val sm = SavesManager(filesDir.resolve("runs_v0").apply {
+            mkdirs()
+            if (!exists()) throw Exception("Could not create save directory")
+        })
         setContent {
             BetterChronoTheme {
-                Screen(vm)
+                Screen(vm, sm)
             }
         }
     }
@@ -136,7 +141,10 @@ fun TimeDisplay(timeMs: Long, isPaused: Boolean) {
 }
 
 @Composable
-fun Screen(vm: ChronoViewModel = viewModel()) {
+fun Screen(
+    vm: ChronoViewModel = viewModel(),
+    savesManager: SavesManager = SavesManager(File("."))
+) {
     val events = remember { vm.events }
     Surface(
         Modifier
@@ -157,7 +165,10 @@ fun Screen(vm: ChronoViewModel = viewModel()) {
                             .asPaddingValues()
                     ),
             ) {
-                EditingWidget(events, { vm.export(System.out.writer()) }, {})
+                EditingWidget(
+                    events,
+                    { savesManager.save(vm, "test") },
+                    { savesManager.loadSave(vm, "test") })
                 LapDisplay(displayInfo.laps, displayInfo.currLap)
             }
         }

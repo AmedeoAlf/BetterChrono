@@ -44,13 +44,13 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>, export: () -> Unit, im
             modifier = Modifier.fillMaxWidth()
         ) {
             if (editingMode) {
-                IconButton({}) {
+                IconButton({ export() }) {
                     Icon(
                         painter = painterResource(R.drawable.outline_upload_24),
                         contentDescription = "Export"
                     )
                 }
-                IconButton({ println("import") }) {
+                IconButton({ import() }) {
                     Icon(
                         painter = painterResource(R.drawable.outline_download_24),
                         contentDescription = "Import"
