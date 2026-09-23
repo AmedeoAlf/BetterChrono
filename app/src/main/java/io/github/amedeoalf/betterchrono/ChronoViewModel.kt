@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import java.io.Serializable
 import java.time.Instant
 import androidx.compose.runtime.State
+import java.io.Reader
+import java.io.Writer
 
 class ChronoViewModel : Serializable, ViewModel() {
     val events = mutableStateListOf<ChronoEvent>()
@@ -105,8 +107,8 @@ class ChronoViewModel : Serializable, ViewModel() {
             }
             val currLap =
                 if (lapStart != null)
-                    // lastTime is null only before the first StartChronoEvent, should be set on the
-                    // iteration lapStart is initialized.
+                // lastTime is null only before the first StartChronoEvent, should be set on the
+                // iteration lapStart is initialized.
                     if (paused) lastTime!!.millisSince(lapStart) - pausedTime
                     else currTime.value.millisSince(lapStart) - pausedTime
                 else 0
@@ -114,6 +116,35 @@ class ChronoViewModel : Serializable, ViewModel() {
             lastLapsMsEnabledEvents = enabledEvents.size
             return DisplayInfo(currTime = totalTime + currLap, laps, currLap, paused)
         }
+
+    fun export(to: Writer) {
+        try {
+            val startTime = events.first().instant
+            for (e in events) {
+                val elapsed = e.instant.millisSince(startTime)
+                to.write(MsToString.convert(elapsed, false))
+                to.write(" ")
+                to.write(if (e is StartChronoEvent) "START" else "STOP")
+                if (e.disabled) to.write(" OFF")
+                to.write("\n")
+            }
+        } catch (_: NoSuchElementException) {
+        }
+    }
+
+    fun import(from: Reader) {
+        val imported = from.readLines().map { it.split(" ") }.map {
+            val instant = Instant.ofEpochMilli(0).plusMillis(MsToString.parse(it[0]))
+            val disabled = it.getOrNull(2) == "OFF"
+            when (it[1]) {
+                "START" -> StartChronoEvent(instant, disabled)
+                "STOP" -> StoppedChronoEvent(instant, disabled)
+                else -> throw Exception("'${it[1]}' in savefile must be START or STOP, could not parse")
+            }
+        }
+        this.events.clear()
+        this.events.addAll(imported)
+    }
 }
 
 data class DisplayInfo(

@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 
 @Composable
-fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
+fun EditingWidget(events: SnapshotStateList<ChronoEvent>, export: () -> Unit, import: () -> Unit) {
     var editingMode by remember { mutableStateOf(false) }
     val toMeasure = remember(events.size) {
         mutableStateListOf(*Array(events.size) { false })
@@ -43,16 +43,30 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
             horizontalArrangement = Arrangement.End,
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (editingMode) Text(
-                if (selectedTimestamps.size == 2)
-                    MsToString[selectedTimestamps[1].millisSince(selectedTimestamps[0])]
-                else "Seleziona due tempi per calcolare la differenza",
-                style = if (selectedTimestamps.size == 2)
-                    MaterialTheme.typography.titleLarge
-                else MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
-            )
+            if (editingMode) {
+                IconButton({}) {
+                    Icon(
+                        painter = painterResource(R.drawable.outline_upload_24),
+                        contentDescription = "Export"
+                    )
+                }
+                IconButton({ println("import") }) {
+                    Icon(
+                        painter = painterResource(R.drawable.outline_download_24),
+                        contentDescription = "Import"
+                    )
+                }
+                Text(
+                    if (selectedTimestamps.size == 2)
+                        MsToString[selectedTimestamps[1].millisSince(selectedTimestamps[0])]
+                    else "Seleziona due tempi per calcolare la differenza",
+                    style = if (selectedTimestamps.size == 2)
+                        MaterialTheme.typography.titleLarge
+                    else MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+            }
             if (events.isNotEmpty())
                 IconButton({
                     editingMode = !editingMode
@@ -114,5 +128,5 @@ fun EditingWidgetPreview() {
         )
     }
 
-    EditingWidget(events)
+    EditingWidget(events, {}, {})
 }

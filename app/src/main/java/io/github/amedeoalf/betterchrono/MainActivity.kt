@@ -157,7 +157,7 @@ fun Screen(vm: ChronoViewModel = viewModel()) {
                             .asPaddingValues()
                     ),
             ) {
-                EditingWidget(events)
+                EditingWidget(events, { vm.export(System.out.writer()) }, {})
                 LapDisplay(displayInfo.laps, displayInfo.currLap)
             }
         }

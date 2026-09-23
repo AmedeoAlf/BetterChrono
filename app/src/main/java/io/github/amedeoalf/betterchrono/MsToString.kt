@@ -14,4 +14,9 @@ object MsToString {
                 millis / 1000 % 60,
                 millis % 1000,
             )
+
+    fun parse(str: String) =
+        str.substring(0..1).toLong() * 1000 * 60 +
+                str.substring(3..4).toLong() * 1000 +
+                str.substring(6..8).toLong()
 }
