@@ -148,6 +148,7 @@ fun Screen(
 ) {
     val events = remember { vm.events }
     val showSaveDialog = remember { mutableStateOf(false) }
+    val showLoadDialog = remember { mutableStateOf(false) }
     Surface(
         Modifier
             .fillMaxSize()
@@ -173,11 +174,15 @@ fun Screen(
                     EditingWidget(
                         events,
                         { showSaveDialog.value = true },
-                        { savesManager.loadSave(vm, "test") })
+                        { showLoadDialog.value = true })
                     LapDisplay(displayInfo.laps, displayInfo.currLap)
                 }
             }
             SaveDialog(showSaveDialog) { savesManager.save(vm, it.toString()) }
+            LoadDialog(
+                showLoadDialog,
+                remember(showLoadDialog.value) { savesManager.listSaves().toList() }
+            ) { savesManager.loadSave(vm, it) }
         }
     }
 }
@@ -238,3 +243,4 @@ fun ButtonBar(vm: ChronoViewModel) {
     }
 
 }
+
