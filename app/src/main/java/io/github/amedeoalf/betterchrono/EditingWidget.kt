@@ -45,7 +45,7 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
         ) {
             if (editingMode) Text(
                 if (selectedTimestamps.size == 2)
-                    selectedTimestamps[1].millisSince(selectedTimestamps[0]).toMillisString()
+                    MsToString[selectedTimestamps[1].millisSince(selectedTimestamps[0])]
                 else "Seleziona due tempi per calcolare la differenza",
                 style = if (selectedTimestamps.size == 2)
                     MaterialTheme.typography.titleLarge
@@ -86,8 +86,7 @@ fun EditingWidget(events: SnapshotStateList<ChronoEvent>) {
                     )
                     Text(
                         (if (event is StoppedChronoEvent) "STOP: " else "START: ") +
-                                event.instant.millisSince(events.first().instant)
-                                    .toMillisString(),
+                                MsToString[event.instant.millisSince(events.first().instant)],
                         Modifier.weight(1f)
                     )
                     Checkbox(

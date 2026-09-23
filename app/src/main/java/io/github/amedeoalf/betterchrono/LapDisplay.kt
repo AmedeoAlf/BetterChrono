@@ -17,21 +17,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun LapDisplay(laps: List<Long>) {
+fun LapDisplay(laps: List<Long>, currLap: Long) {
     LazyVerticalGrid(
         GridCells.Adaptive(110.dp),
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        itemsIndexed(laps) { idx, it ->
+        itemsIndexed(
+            laps,
+            key = { idx, it -> it shl 12 or (idx and 0xfff).toLong() }) { idx, it ->
             LapEntry(idx, it)
+        }
+        if (laps.isNotEmpty()) item {
+            LapEntry(laps.size, currLap, doNotCache = true)
         }
     }
 }
 
 @Composable
-fun LapEntry(idx: Int, timeMs: Long) {
+fun LapEntry(idx: Int, timeMs: Long, doNotCache: Boolean = false) {
     Card {
         Column(Modifier.padding(5.dp)) {
             Text(
@@ -42,7 +47,7 @@ fun LapEntry(idx: Int, timeMs: Long) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                timeMs.toMillisString(),
+                MsToString.convert(timeMs, !doNotCache),
                 style = MaterialTheme.typography.titleLarge
             )
         }

@@ -106,13 +106,13 @@ fun runOnEveryFrame(
 }
 
 @Composable
-fun TimeDisplay(timeMs: Long) {
+fun TimeDisplay(timeMs: Long, isPaused: Boolean) {
     val baseStyle = MaterialTheme.typography.displayLarge
     val baseFontSize = MaterialTheme.typography.displayLarge.fontSize
     var resizedStyle by remember { mutableStateOf(baseStyle.copy(fontSize = baseFontSize * 2)) }
     var shouldDraw by remember { mutableStateOf(false) }
     Text(
-        timeMs.toMillisString(),
+        MsToString.convert(timeMs, isPaused),
         modifier = Modifier
             .fillMaxWidth()
             .drawWithContent {
@@ -147,8 +147,9 @@ fun Screen(vm: ChronoViewModel = viewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
+            val displayInfo = vm.displayInfo
             ButtonBar(vm)
-            TimeDisplay(vm.displayMs)
+            TimeDisplay(displayInfo.currTime, displayInfo.paused)
             Column(
                 Modifier
                     .padding(
@@ -157,18 +158,13 @@ fun Screen(vm: ChronoViewModel = viewModel()) {
                     ),
             ) {
                 EditingWidget(events)
-                LapDisplay(vm.lapsMs)
+                LapDisplay(displayInfo.laps, displayInfo.currLap)
             }
         }
     }
 }
 
 fun Instant.millisSince(other: Instant) = ChronoUnit.MILLIS.between(other, this)
-fun Long.toMillisString() = "%02d:%02d.%03d".format(
-    this / (1000 * 60),
-    this / 1000 % 60,
-    this % 1000,
-)
 
 @Preview(device = Devices.PIXEL_3_XL, showSystemUi = true)
 @Composable
